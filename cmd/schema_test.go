@@ -183,7 +183,7 @@ func TestWriteFormMarkdown_empty(t *testing.T) {
 func TestWriteFormMarkdown_formWithRecordSource(t *testing.T) {
 	var b strings.Builder
 	forms := []mdb.FormMeta{
-		{Name: "Orders", RecordSource: "SELECT * FROM Orders;"},
+		{Name: "Orders", RecordSource: "SELECT OrderID, Total FROM Orders;"},
 	}
 
 	writeFormMarkdown(&b, forms)
@@ -197,7 +197,7 @@ func TestWriteFormMarkdown_formWithRecordSource(t *testing.T) {
 		t.Errorf("expected form name heading, got: %q", out)
 	}
 
-	if !strings.Contains(out, "SELECT * FROM Orders;") {
+	if !strings.Contains(out, "SELECT OrderID, Total FROM Orders;") {
 		t.Errorf("expected RecordSource SQL in output, got: %q", out)
 	}
 }
