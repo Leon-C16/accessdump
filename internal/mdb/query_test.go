@@ -236,6 +236,28 @@ func TestReconstructQuery(t *testing.T) {
 			wantConn: "ODBC;DRIVER=SQL Server;SERVER=sql;UID=app;PWD=geheim",
 		},
 		{
+			name:  "bulk pass-through returning no records",
+			flags: 0x90,
+			rows: []QueryRow{
+				{Attribute: qAttrType, Flag: 10, Name1: ptr("ODBC;DSN=x;Trusted_Connection=Yes"), Expression: ptr("EXEC dbo.Protokoll 1")},
+			},
+			wantType: QueryTypePassThrough,
+			wantSQL:  "EXEC dbo.Protokoll 1",
+			wantConn: "ODBC;DSN=x;Trusted_Connection=Yes",
+		},
+		{
+			name:  "memo parameter",
+			flags: flagsAppend,
+			rows: []QueryRow{
+				{Attribute: qAttrType, Flag: 3, Name1: ptr("NCR")},
+				{Attribute: qAttrParameter, Name1: ptr("Text_P"), Flag: ColTypeMemo},
+				{Attribute: qAttrColumn, Expression: ptr("[Text_P]"), Name2: ptr("Text"), Flag: qAppendValue},
+			},
+			wantType:   QueryTypeAppend,
+			wantParams: []string{"Text_P LongText"},
+			wantSQL:    "PARAMETERS Text_P LongText;\nINSERT INTO NCR (Text)\nVALUES ([Text_P]);",
+		},
+		{
 			name:     "data definition",
 			flags:    flagsDDL,
 			rows:     []QueryRow{{Attribute: qAttrType, Flag: 7, Expression: ptr("CREATE INDEX ix ON T (A)\r\n")}},

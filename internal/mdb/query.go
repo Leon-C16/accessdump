@@ -116,6 +116,11 @@ var queryTypes = []struct {
 	{96, 7, QueryTypeDataDefinition},
 	{112, 8, QueryTypePassThrough},
 	{128, 9, QueryTypeUnion},
+	// dbQSPTBulk: a pass-through query that returns no records
+	// (ReturnsRecords = False). Jackcess only names it in a comment; the
+	// production frontends use it for EXEC calls, with the same rows as a
+	// plain pass-through.
+	{144, 10, QueryTypePassThrough},
 }
 
 // paramTypeNames maps a parameter's Flag (a Jet column type) to its SQL name.
@@ -132,7 +137,9 @@ var paramTypeNames = map[int16]string{
 	ColTypeDatetime: "DateTime",
 	ColTypeBinary:   "Binary",
 	ColTypeOLE:      "LongBinary",
-	ColTypeGUID:     "Guid",
+	// Not in Jackcess; Memo parameters occur in the production frontends.
+	ColTypeMemo: "LongText",
+	ColTypeGUID: "Guid",
 }
 
 var joinTypeNames = map[int16]string{
@@ -208,11 +215,8 @@ func ReconstructQuery(objectFlags int32, rows []QueryRow) (ReconstructedQuery, e
 	}
 
 	// The type row must agree with the type we settled on.
-	if typeRow, ok := firstRow(rows, qAttrType); ok {
-		want := rowFlagOf(result.Type)
-		if typeRow.Flag != want {
-			return result, unsupported("type row says %d, object flags say %s", typeRow.Flag, result.Type)
-		}
+	if typeRow, ok := firstRow(rows, qAttrType); ok && !rowFlagMatches(result.Type, typeRow.Flag) {
+		return result, unsupported("type row says %d, object flags say %s", typeRow.Flag, result.Type)
 	}
 
 	params, err := qb.parameters()
@@ -277,14 +281,16 @@ func ReconstructQuery(objectFlags int32, rows []QueryRow) (ReconstructedQuery, e
 	return result, nil
 }
 
-func rowFlagOf(qt QueryType) int16 {
+// rowFlagMatches reports whether a type row flag belongs to qt. Pass-through
+// has two: plain and bulk.
+func rowFlagMatches(qt QueryType, rowFlag int16) bool {
 	for _, t := range queryTypes {
-		if t.typ == qt {
-			return t.rowFlag
+		if t.typ == qt && t.rowFlag == rowFlag {
+			return true
 		}
 	}
 
-	return -1
+	return false
 }
 
 type queryBuilder struct {
