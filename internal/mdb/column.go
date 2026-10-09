@@ -490,7 +490,7 @@ func readVarColumn(data []byte, col *Column, varOffsets []int, numVarCols int) a
 
 	switch col.Type {
 	case ColTypeText:
-		return decodeUCS2(raw)
+		return decodeJet4Text(raw)
 	case ColTypeBool:
 		if len(raw) >= 1 {
 			return raw[0] != 0
