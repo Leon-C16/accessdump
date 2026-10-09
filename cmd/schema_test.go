@@ -122,7 +122,7 @@ func TestRenderDDL_relationship(t *testing.T) {
 func TestRenderDDL_selectQueryBecomesView(t *testing.T) {
 	s := &mdb.Schema{
 		Queries: []mdb.QueryDef{
-			{Name: "ActiveCustomers", SQL: "SELECT * FROM Customers WHERE Active = 1"},
+			{Name: "ActiveCustomers", Type: mdb.QueryTypeSelect, SQL: "SELECT * FROM Customers WHERE Active = 1;"},
 		},
 	}
 
@@ -131,12 +131,16 @@ func TestRenderDDL_selectQueryBecomesView(t *testing.T) {
 	if !strings.Contains(out, "CREATE VIEW [ActiveCustomers]") {
 		t.Errorf("expected SELECT query rendered as CREATE VIEW, got: %q", out)
 	}
+
+	if strings.Contains(out, ";;") {
+		t.Errorf("the reconstructed SQL already ends in ';', got: %q", out)
+	}
 }
 
 func TestRenderDDL_actionQueryIsCommented(t *testing.T) {
 	s := &mdb.Schema{
 		Queries: []mdb.QueryDef{
-			{Name: "DeleteOld", SQL: "DELETE FROM Log WHERE Date < #2020-01-01#"},
+			{Name: "DeleteOld", Type: mdb.QueryTypeDelete, SQL: "DELETE FROM Log WHERE Date < #2020-01-01#;"},
 		},
 	}
 
@@ -146,7 +150,7 @@ func TestRenderDDL_actionQueryIsCommented(t *testing.T) {
 		t.Errorf("action query should not become a VIEW, got: %q", out)
 	}
 
-	if !strings.Contains(out, "-- Action query: DeleteOld") {
+	if !strings.Contains(out, "-- delete query: DeleteOld") {
 		t.Errorf("expected action query comment, got: %q", out)
 	}
 }
